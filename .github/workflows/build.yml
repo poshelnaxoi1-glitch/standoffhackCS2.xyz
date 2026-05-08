@@ -1,0 +1,15 @@
+name: Build
+on: push
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Compile
+      run: |
+        cl.exe /EHsc /std:c++17 /O2 /MT /Fe:standoff.exe main.cpp /link opengl32.lib gdi32.lib shell32.lib urlmon.lib user32.lib kernel32.lib
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: standoff
+        path: standoff.exe
