@@ -6,32 +6,36 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup MSVC Developer Command Prompt
+    - name: Setup MSVC
       uses: TheMrMilchmann/setup-msvc-dev@v3
       with:
         arch: x64
-        spectre: false
 
     - name: Download ImGui
+      shell: pwsh
       run: |
         mkdir imgui
-        curl -L -o imgui/imgui.h https://raw.githubusercontent.com/ocornut/imgui/master/imgui.h
-        curl -L -o imgui/imgui.cpp https://raw.githubusercontent.com/ocornut/imgui/master/imgui.cpp
-        curl -L -o imgui/imgui_draw.cpp https://raw.githubusercontent.com/ocornut/imgui/master/imgui_draw.cpp
-        curl -L -o imgui/imgui_widgets.cpp https://raw.githubusercontent.com/ocornut/imgui/master/imgui_widgets.cpp
-        curl -L -o imgui/imgui_tables.cpp https://raw.githubusercontent.com/ocornut/imgui/master/imgui_tables.cpp
-        curl -L -o imgui/imconfig.h https://raw.githubusercontent.com/ocornut/imgui/master/imconfig.h
-        curl -L -o imgui/imgui_internal.h https://raw.githubusercontent.com/ocornut/imgui/master/imgui_internal.h
-        curl -L -o imgui/imgui_impl_win32.h https://raw.githubusercontent.com/ocornut/imgui/master/backends/imgui_impl_win32.h
-        curl -L -o imgui/imgui_impl_win32.cpp https://raw.githubusercontent.com/ocornut/imgui/master/backends/imgui_impl_win32.cpp
-        curl -L -o imgui/imgui_impl_opengl3.h https://raw.githubusercontent.com/ocornut/imgui/master/backends/imgui_impl_opengl3.h
-        curl -L -o imgui/imgui_impl_opengl3.cpp https://raw.githubusercontent.com/ocornut/imgui/master/backends/imgui_impl_opengl3.cpp
-      shell: pwsh
+        $base = "https://raw.githubusercontent.com/ocornut/imgui/master"
+        $files = @(
+          "imgui.h", "imgui.cpp", "imgui_draw.cpp", "imgui_widgets.cpp",
+          "imgui_tables.cpp", "imconfig.h", "imgui_internal.h",
+          "imstb_rectpack.h", "imstb_textedit.h", "imstb_truetype.h",
+          "backends/imgui_impl_win32.h", "backends/imgui_impl_win32.cpp",
+          "backends/imgui_impl_opengl3.h", "backends/imgui_impl_opengl3.cpp",
+          "backends/imgui_impl_opengl3_loader.h"
+        )
+        foreach ($f in $files) {
+          $url = "$base/$f"
+          $dest = "imgui/" + [System.IO.Path]::GetFileName($f)
+          Write-Host "Downloading $url -> $dest"
+          Invoke-WebRequest -Uri $url -OutFile $dest
+        }
 
     - name: Compile
-      run: |
-        cl.exe /EHsc /nologo /std:c++17 /O2 /MT /W0 /Fe:standoff.exe main.cpp imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_widgets.cpp imgui/imgui_tables.cpp imgui/imgui_impl_win32.cpp imgui/imgui_impl_opengl3.cpp /link opengl32.lib gdi32.lib shell32.lib urlmon.lib user32.lib kernel32.lib
       shell: pwsh
+      run: |
+        $sources = @("main.cpp", "imgui/imgui.cpp", "imgui/imgui_draw.cpp", "imgui/imgui_widgets.cpp", "imgui/imgui_tables.cpp", "imgui/imgui_impl_win32.cpp", "imgui/imgui_impl_opengl3.cpp")
+        cl.exe /EHsc /nologo /std:c++17 /O2 /MT /W0 /Fe:standoff.exe $sources /link opengl32.lib gdi32.lib shell32.lib urlmon.lib user32.lib kernel32.lib
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
